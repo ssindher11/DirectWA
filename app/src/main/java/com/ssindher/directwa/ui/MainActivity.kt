@@ -166,9 +166,24 @@ fun MainScreen(modifier: Modifier = Modifier) {
             ) {
                 OutlinedTextField(
                     value = phoneNumber,
-                    onValueChange = {
-                        if (it.isDigitsOnly() && it.length <= 10) {
-                            phoneNumber = it
+                    onValueChange = { newValue ->
+                        // This is a hack to guess paste from clipboard
+                        val probablyPasted = newValue.length > phoneNumber.length + 1
+                        if (probablyPasted) {
+                            val (dialCode, phone) = extractPhoneNumber(newValue)
+                            if (!phone.isNullOrBlank()) {
+                                phoneNumber = phone
+                                val country = countriesList.find { it.dialCode == "+$dialCode" }
+                                country?.let {
+                                    coroutineScope.launch {
+                                        countryPreferencesManager.saveSelectedCountryCode(country.code)
+                                    }
+                                }
+                            }
+                        } else {
+                            if (newValue.isDigitsOnly() && newValue.length <= 10) {
+                                phoneNumber = newValue
+                            }
                         }
                     },
                     leadingIcon = {
